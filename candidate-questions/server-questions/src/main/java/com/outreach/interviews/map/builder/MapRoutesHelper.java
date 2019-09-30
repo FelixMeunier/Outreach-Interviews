@@ -24,9 +24,10 @@ public class MapRoutesHelper
 {
 	public static class RoutesBuilder {
 
-		private String origin;
-		private String destination;
-		private MapRegions region;
+		private String address;
+		//private String origin;
+		//private String destination;
+		//private MapRegions region;
 		private MapOperations operation;
 		private MapModes mode;
 		private JsonObject result;
@@ -34,43 +35,15 @@ public class MapRoutesHelper
 		private final String URL = "https://maps.googleapis.com/maps/api/";
 		private CloseableHttpClient httpclient = HttpClients.createDefault();
 		
-		/**
-		 * Set the starting point
-		 * @param origin String representing the starting point
-		 * @return {@link RoutesBuilder}
-		 */
-		public RoutesBuilder setOrigin(String origin)  {
-			this.origin = origin;
-			return this;
-		}
 		
 		/**
-		 * Set the destination point
-		 * @param destination String representing the destination point
+		 * Set the address to look for
+		 * @param origin String representing the address
 		 * @return {@link RoutesBuilder}
 		 */
-		public RoutesBuilder setDestination(String destination) {
-			this.destination = destination;
-			return this;
-		}
 		
-		/**
-		 * Set the region {@link MapRegions}
-		 * @param region Allows for en, es
-		 * @return {@link RoutesBuilder}
-		 */
-		public RoutesBuilder setRegion(MapRegions region) {
-			this.region = region;
-			return this;
-		}
-		
-		/**
-		 * Set the region {@link MapModes}
-		 * @param mode Allows for walking, driving, transit, biking
-		 * @return {@link RoutesBuilder}
-		 */
-		public RoutesBuilder setMapMode(MapModes mode) {
-			this.mode = mode;
+		public RoutesBuilder setAddress(String address)  {
+			this.address = address;
 			return this;
 		}
 		
@@ -80,7 +53,7 @@ public class MapRoutesHelper
 		 * @return {@link RoutesBuilder}
 		 */
 		public RoutesBuilder setURL(MapOperations type) {
-			if(type.equals(MapOperations.geocode))
+			if(type.equals(MapOperations.directions))
 				throw new UnsupportedOperationException();
 
 			this.operation = type;
@@ -93,17 +66,13 @@ public class MapRoutesHelper
 		 * @return {@link RoutesBuilder}  
 		 * @throws UnsupportedOperationException Thrown to indicate that the requested operation is not supported.
 		 * @throws IOException Thrown to indicate that the requested operation is not supported.
-		 * @throws IllegalArgumentException Thrown to indicate that a method has been passed an illegal orinappropriate argument.
+		 * @throws IllegalArgumentException Thrown to indicate that a method has been passed an illegal or inappropriate argument.
 		 */
 		public RoutesBuilder build() throws UnsupportedOperationException, IOException, IllegalArgumentException {
-			String requestURL = this.getURL()  	+ "&origin=" + getOrigin() 
-												+ "&destination=" + getDestination()
-												+ "&region=" + getRegion()
+			String requestURL = this.getURL()  	+ "address=" + getAddress() 
 												+ "&key=" + this.getAPIKey();
+
 			
-			if(getMode() != null) {
-				requestURL = requestURL + "&mode=" + this.getMode();
-			}
 			
 			HttpGet httpGet = new HttpGet(requestURL);
 			
@@ -122,29 +91,40 @@ public class MapRoutesHelper
 		}
 		
 		/**
-		 * Retrieve the steps required to get from the source to the destination
-		 * @return List of String containing the steps to get to the destination
+		 * Retrieve the latitude and longitude of the address
+		 * @return float[2] with lat and lng
 		 */
-		public List<String> getDirections() {
-			if(this.operation.equals(MapOperations.directions) && zeroResults(this.result)) {
-				List<String> list = new ArrayList<String>();
-				JsonArray steps = this.result.get("routes").getAsJsonArray().get(0).getAsJsonObject()
-					.get("legs").getAsJsonArray().get(0).getAsJsonObject()
-					.get("steps").getAsJsonArray();
-				
-				Iterator<JsonElement> i = steps.iterator();
-				while(i.hasNext()) {
-					JsonObject step = (JsonObject) i.next();
-					list.add(step.get("html_instructions").getAsString());
-				}
-				return list;
-			} else {
-				throw new IllegalArgumentException("Does not support " + MapOperations.geocode.name());
-			}
+		
+		public float[] getLatLng(){
+			float[] latLng = new float[2];
+
+			latLng[0] = (this.result.get("results").getAsJsonArray().get(0)
+									.getAsJsonObject()
+									.get("geometry")
+									.getAsJsonObject()
+									.get("location")
+									.getAsJsonObject()
+									.get("lat")
+									.getAsFloat());
+			
+			latLng[1] = (this.result.get("results").getAsJsonArray()
+									.get(0)
+									.getAsJsonObject()
+									.get("geometry")
+									.getAsJsonObject()
+									.get("location")
+									.getAsJsonObject()
+									.get("lng")
+									.getAsFloat());
+			return latLng;
 		}
 		
 
 		//*************************For Internal Use Only***********************************//
+		private final String getAddress() {
+			return this.address;
+		}
+		
 		private final String getURL() {
 			return this.URL + this.operation.name() + "/json?";
 		}
@@ -153,34 +133,6 @@ public class MapRoutesHelper
 			return System.getenv("OUTREACH_MAPS_KEY");
 		}
 		
-		private final String getOrigin() {
-			if(this.origin == null)
-				throw new IllegalArgumentException("Origin cannot be empty");
-			
-			return this.origin;
-		}
-		
-		private final String getDestination() {
-			if(this.destination == null)
-				throw new IllegalArgumentException("Destination cannot be empty");
-			
-			return this.destination;
-		}
-		
-		private final String getMode() {
-			if(this.mode == null) {
-				return null;
-			}
-			
-			return this.mode.name();
-		}
-		
-		private final String getRegion() {
-			if(this.destination == null)
-				throw new IllegalArgumentException("Region cannot be empty");
-			
-			return this.region.name();
-		}
 		
 		private final boolean zeroResults(JsonObject obj) {
 			return !obj.get("status").getAsString().equals("ZERO_RESULTS");
