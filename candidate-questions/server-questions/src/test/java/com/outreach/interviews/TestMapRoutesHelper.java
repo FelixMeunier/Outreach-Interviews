@@ -28,4 +28,44 @@ public class TestMapRoutesHelper
 		System.out.println("Longitude : " + result[1]);
 	}
 	
+	
+	@Test
+	public void testMapRoutesHelperApiKey2() throws UnsupportedOperationException, IOException {
+		float result[] = new MapRoutesHelper.RoutesBuilder()
+			.setAddress("Ottawa")
+			.setURL(MapOperations.geocode)
+			.build()
+			.getLatLng();
+		
+		assertNotNull(result);
+		assertTrue(result.length == 2);
+		
+		System.out.println("Latitude : " + result[0]);
+		System.out.println("Longitude : " + result[1]);
+	}
+	
+	@Test(expected = java.lang.UnsupportedOperationException.class)
+	public void testMapRoutesHelperApiKey3() throws UnsupportedOperationException, IOException {
+		float[] result = new MapRoutesHelper.RoutesBuilder()
+			.setAddress("Cairo")
+			.setURL(MapOperations.directions)
+			.build()
+			.getLatLng();
+		
+		assertNotNull(result);
+		assertTrue(result.length == 2);
+		System.out.println("Latitude : " + result[0]);
+		System.out.println("Longitude : " + result[1]);
+	}
+	
+	@Test(expected = java.lang.UnsupportedOperationException.class)
+	public void testMapRoutesHelperApiKey4() throws UnsupportedOperationException, IOException {
+		float[] result = new MapRoutesHelper.RoutesBuilder()
+			.setURL(MapOperations.directions)
+			.build()
+			.getLatLng();
+		
+		assertNotNull(result);
+	}
+	
 }
